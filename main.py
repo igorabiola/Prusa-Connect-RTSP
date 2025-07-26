@@ -237,7 +237,7 @@ def create_timelapse_video():
         print(f"❌ Error creating timelapse: {e}")
         return False
 
-def cleanup_old_frames(max_frames=1000):
+def cleanup_old_frames(max_frames=100000):
     """
     Removes oldest frames if there are too many
     
@@ -255,6 +255,26 @@ def cleanup_old_frames(max_frames=1000):
             
     except Exception as e:
         print(f"❌ Error cleaning up frames: {e}")
+
+
+def cleanup_timelapse_directory():
+    """
+    Cleans up the timelapse directory by removing all files
+    """
+    try:
+        if os.path.exists(TIMELAPSE_DIR):
+            files = glob.glob(os.path.join(TIMELAPSE_DIR, "*"))
+            for file in files:
+                os.remove(file)
+            print(f"🗑️ Cleared timelapse directory: {TIMELAPSE_DIR}")
+        else:
+            print(f"⚠️ Timelapse directory does not exist: {TIMELAPSE_DIR}")
+    except Exception as e:
+        print(f"❌ Error clearing timelapse directory: {e}")
+
+
+#cleanup directorury at start
+cleanup_timelapse_directory()
 
 # Test camera connection
 print("🔌 Testing camera connection...")
@@ -295,27 +315,8 @@ try:
         # Convert to bytes (like in JS: Uint8Array.from(binary, (c2) => c2.charCodeAt(0)))
         image_bytes = jpeg.tobytes()
         
-        # Send frame using new HTTP session
-        success, status_code, response_text = send_frame_to_prusa(image_bytes)
-        
         frame_count += 1
-        
-        if success and status_code == 200:
-            successful_uploads += 1
-            print(f"📤 Frame #{frame_count} sent successfully. Size: {len(image_bytes)} bytes. Success: {successful_uploads}/{frame_count}")
-        elif success and status_code == 429:
-            print(f"⚠️ Rate limit exceeded! Increase UPLOAD_INTERVAL (current: {UPLOAD_INTERVAL}s)")
-            time.sleep(UPLOAD_INTERVAL * 2)  # Wait longer after rate limit
-        else:
-            print(f"⚠️ Upload error #{frame_count}: {status_code} - {response_text}")
-            # Display error details
-            if status_code == 401:
-                print("💡 Check if token and fingerprint are correct")
-            elif status_code == 400:
-                print("💡 Check data format - possible Content-Length issue")
-            elif not success:
-                print("💡 Connection error - check internet connection")
-        
+                
         time.sleep(UPLOAD_INTERVAL)
 
 except KeyboardInterrupt:
